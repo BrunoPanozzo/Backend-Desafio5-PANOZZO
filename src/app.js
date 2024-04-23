@@ -1,14 +1,19 @@
 //definir los paquetes que se van a utilizar
 const express = require('express')
-// const handlebars = require('express-handlebars')
 const expressHandlebars = require("express-handlebars")
+const cookieParser = require('cookie-parser')
 const mongoose = require('mongoose')
 const { Server } = require('socket.io')
+
+//definir paquetes y config de mongo
+const { dbName, mongoUrl } = require('./dbConfig')
+const sessionMiddleware = require('./session/mongoStorage')
 
 //definir los routers
 const productRouter = require('./routes/products.router')
 const cartRouter = require('./routes/carts.router')
 const viewsRouter = require('./routes/views.router')
+const sessionsRouter = require('./routes/session.router')
 
 //definir los Managers y Modelos
 const fsProductManager = require('./dao/fsManagers/ProductManager')
@@ -37,7 +42,7 @@ const handlebars = expressHandlebars.create({
     }
 })
 app.engine("handlebars", handlebars.engine)
-app.set("views" , `${__dirname}/views`)
+app.set("views", `${__dirname}/views`)
 app.set("view engine", "handlebars")
 
 //Configurar las views para tener alcance a los archivos CSS, JS e IMAGES desde los routers
@@ -45,18 +50,38 @@ app.use('/products/detail', express.static(`${__dirname}/../public`));
 app.use('/products/create', express.static(`${__dirname}/../public`));
 app.use('/carts', express.static(`${__dirname}/../public`));
 
+//configuro mi session en MongoDB
+app.use(cookieParser())
+app.use(sessionMiddleware)
+
 //configurar los routers
 app.use('/api/products', productRouter)
 app.use('/api/carts', cartRouter)
+app.use('/api/sessions', sessionsRouter)
 app.use('/', viewsRouter)
+
+// app.get('/', (req, res) => {
+//     if (req.session.counter) {
+//         req.session.counter++
+//         return res.send(`Esta es su visita nro. ${req.session.counter}`)
+//     }
+
+//     req.session.counter = 1
+//     res.send('Bienvenido! Esta es su primer visita!')
+// })
 
 const main = async () => {
 
+    let httpServer
     //configurar mongoose
-    await mongoose.connect('mongodb+srv://coderUser:coderPassword@coderclustertest.y46cxod.mongodb.net/?retryWrites=true&w=majority&appName=CoderClustertest',
-        {
-            dbName: 'ecommerce'
-        })           
+    await mongoose.connect(mongoUrl, { dbName })
+        .then(() => {
+            //crear un servidor HTTP
+            httpServer = app.listen(8080, () => {
+                console.log('Servidor listo escuchando en el puerto 8080')
+            });
+
+        })
 
     //configurar cuál de los dos Managers está activo, son excluyentes
     //Manager con FileSystem
@@ -80,11 +105,6 @@ const main = async () => {
     //Manager del chat
     const messageManager = new dbMessageManager()
     // app.set('messageManager', messageManager)
-    
-    //crear un servidor HTTP
-    const httpServer = app.listen(8080, () => {
-        console.log('Servidor listo escuchando en el puerto 8080')
-    });
 
     //crear un servidor WS
     const io = new Server(httpServer)
@@ -103,11 +123,11 @@ const main = async () => {
         // clientSocket.on('deleteProduct', async (idProd) => {
         //     const id = parseInt(idProd)
         //     await productManager.deleteProduct(id)
-            
+
         //     console.log(`El producto con código '${id}' se eliminó exitosamente.`)
         //     //avisar a todos los clientes
         //     io.emit('deleteProduct', idProd)
-            
+
         // })
 
         //sección de MESSAGES
@@ -124,7 +144,7 @@ const main = async () => {
 
         clientSocket.on('userAuthenticated', data => {
             // notificar a los otros usuarios que se conecto
-            clientSocket.broadcast.emit('newUserConnected', data)  
+            clientSocket.broadcast.emit('newUserConnected', data)
         })
     })
 }

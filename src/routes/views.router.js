@@ -1,33 +1,37 @@
 const { Router } = require('express')
 const ProductManager = require('../dao/fsManagers/ProductManager')
 const productModel = require('../dao/models/product.model')
+const { userIsLoggedIn, userIsNotLoggedIn, userIsAdmin }= require('../middlewares/auth.middleware')
 
 const router = Router()
 
-//endpoints
+//endpoints de Products y Carts
 
-router.get('/products', async (req, res) => {
+router.get('/products', userIsLoggedIn, async (req, res) => {
     try {
         const productManager = req.app.get('productManager')
         
         const filteredProducts = await productManager.getProducts(req.query)
         
+        let user = req.session.user 
+
         const data = {
             title: 'All Products',
             scripts: ['allProducts.js'],
             styles: ['home.css', 'allProducts.css'],
             useWS: false,
+            user,
             filteredProducts
         }
 
-        res.render('index', data)        
+        res.render('allProducts', data)        
     }
     catch (err) {
         return res.status(500).json({ message: err.message })
     }
 })
 
-router.get('/products/detail/:pid', async (req, res) => {
+router.get('/products/detail/:pid', userIsLoggedIn, async (req, res) => {
     try {
         const productManager = req.app.get('productManager')
         const cartManager = req.app.get('cartManager')
@@ -55,7 +59,7 @@ router.get('/products/detail/:pid', async (req, res) => {
     }
 })
 
-router.get('/products/addcart/:pid', async (req, res) => {
+router.get('/products/addcart/:pid', userIsLoggedIn, async (req, res) => {
     try {
         const productManager = req.app.get('productManager')
         const cartManager = req.app.get('cartManager')
@@ -77,7 +81,7 @@ router.get('/products/addcart/:pid', async (req, res) => {
     }
 })
 
-router.get('/carts/:cid', async (req, res) => {
+router.get('/carts/:cid', userIsLoggedIn, async (req, res) => {
     try {
         const cartManager = req.app.get('cartManager')
         const cartId = req.params.cid
@@ -100,7 +104,7 @@ router.get('/carts/:cid', async (req, res) => {
     }
 })
 
-router.get('/realtimeproducts', async (req, res) => {
+router.get('/realtimeproducts', userIsLoggedIn, userIsAdmin, async (req, res) => {
     const productManager = req.app.get('productManager')
 
     let allProducts = await productManager.getProducts(req.query)
@@ -116,7 +120,7 @@ router.get('/realtimeproducts', async (req, res) => {
     res.render('realtimeproducts', data)
 })
 
-router.get('/products/create', async (req, res) => {
+router.get('/products/create', userIsLoggedIn, userIsAdmin, async (req, res) => {
     
     const data = {
         title: 'Create Product',
@@ -128,6 +132,7 @@ router.get('/products/create', async (req, res) => {
     res.render('createProduct', data)
 })
 
+//endpoints de Messages
 
 router.get('/chat', (_, res) => {
     const data = {
@@ -139,6 +144,46 @@ router.get('/chat', (_, res) => {
     }
 
     res.render('message', data)
+})
+
+//endpoints de Login/Register
+
+router.get('/', (req, res) => {
+    const isLoggedIn = ![null, undefined].includes(req.session.user)
+
+    res.render('index', {
+        title: 'Inicio',
+        isLoggedIn,
+        isNotLoggedIn: !isLoggedIn,
+    })
+})
+
+
+router.get('/login', userIsNotLoggedIn,  (_, res) => {
+    // sólo se puede acceder si no está logueado
+    res.render('login', {
+        title: 'Login'
+    })
+})
+
+router.get('/register', userIsNotLoggedIn, (_, res) => {
+    //sólo se puede acceder si no está logueado
+    res.render('register', {
+        title: 'Register'
+    })
+})
+
+router.get('/profile', userIsLoggedIn,  (_, res) => {
+    let user = req.session.user 
+    res.render('profile', {
+        title: 'Mi perfil',
+        user: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            age: user.age,
+            email: user.email
+        }
+    })
 })
 
 module.exports = router;

@@ -182,7 +182,7 @@ router.post('/create', validateNewProduct, async (req, res) => {
         // HTTP 201 OK => producto creado exitosamente
         res.status(201).json(`El producto con código '${newProduct.code}' se agregó exitosamente.`)
 
-        // res.redirect('/index')
+        // res.redirect('/allProducts')
     }
     catch (err) {
         return res.status(500).json({ message: err.message })
