@@ -173,7 +173,7 @@ router.get('/register', userIsNotLoggedIn, (_, res) => {
     })
 })
 
-router.get('/profile', userIsLoggedIn,  (_, res) => {
+router.get('/profile', userIsLoggedIn,  (req, res) => {
     let user = req.session.user 
     res.render('profile', {
         title: 'Mi perfil',

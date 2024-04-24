@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
         return res.status(400).send('Email o password inválidos!')
     }
 
-    req.session.user = { id: user._id.toString(), email: user.email, firstName: user.firstName, lastName: user.lastName, rol: user.rol }
+    req.session.user = { id: user._id.toString(), email: user.email, age: user.age, firstName: user.firstName, lastName: user.lastName, rol: user.rol }
     return res.redirect('/products')
 })
 
