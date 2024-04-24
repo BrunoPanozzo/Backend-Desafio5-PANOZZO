@@ -12,25 +12,28 @@ router.post('/login', async (req, res) => {
     console.log(email)
     console.log(password)
 
-    if (email === "adminCoder@coder.com" && password === "adminCod3er123") {
+    if (email === "adminCoder@coder.com" && password === "adminCod3r123") {
         user = {
             rol: "admin",
             firstName: "Coder",
             lastName: "House",
-            email: email,
-            password: password,
-            _id: "dflksgd8sfg7sd890fg"
+            // email: email,
+            // password: password,
+            // _id: "dflksgd8sfg7sd890fg"
         }
+        req.session.user = { firstName: user.firstName, lastName: user.lastName, rol: user.rol }
+
+        return res.redirect('/products')
     }
-    else {  //lo busco en la BD
-        user = await User.findOne({ email, password })
-        if (!user) {
-            return res.status(400).send('Email o password inválidos!')
-        }
+
+    //lo busco en la BD
+    user = await User.findOne({ email, password })
+    if (!user) {
+        return res.status(400).send('Email o password inválidos!')
     }
 
     req.session.user = { id: user._id.toString(), email: user.email, firstName: user.firstName, lastName: user.lastName, rol: user.rol }
-    res.redirect('/products')
+    return res.redirect('/products')
 })
 
 router.post('/register', async (req, res) => {
